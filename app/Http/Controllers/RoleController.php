@@ -1,100 +1,22 @@
 <?php
 
-namespace App\Models;
+namespace App\Http\Controllers;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use App\Exceptions\RoleDoesNotExist;
-use App\Exceptions\RoleAlreadyExists;
-use App\Traits\HasPermissions;
-use App\Contracts\Role as RoleContract;
-use App\Models\Permission; 
+use Illuminate\Http\Request;
 
-class Role extends Model implements RoleContract {
-	use HasPermission;
+use Auth;
 
+//Import Spatie Laravel Permission Model
+use App\Models\Role;
+use App\Permission;
+
+//Import Session to show flash message
+use Session;
+
+class RoleController extends Controller
+{
     public function __construct() {
         $this->middleware(['auth', 'isAdmin']);//isAdmin middleware lets only users with a //specific permission permission to access these resources
-        $this->setTable('roles');
-    }
-
-    /**
-     * A role may be given various permissions.
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\belongsToMany
-     */
-    public function permissions(): BelongsToMany {
-        return $this->belongsToMany('App\Models\Permission', 'role_has_permissions');
-    }
-
-    /**
-     * A role can be applied to users.
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsToMany
-     */
-    public function users() {
-        return $this->belongsToMany('App\Models\User', 'user_has_roles');
-    }
-
-    /**
-     * Find a role by its name
-     *
-     * @param string $name
-     *
-     * @return \Spatie\Permission\Contracts\Role|\Spatie\Permission\Models\Role
-     *
-     * @throws \Spatie\Permission\Exceptions\RoleDoesNotExist
-     */
-    public static function findByName(string $name): RoleContract {
-        $role = static::where('name', $name)->first();
-        if (! $role) {
-            throw RoleDoesNotExist::named($name);
-        }
-        return $role;
-    }
-
-    public static function findById(int $id): RoleContract {
-        $role = static::where('id', $id)->first();
-        if (! $role) {
-            throw RoleDoesNotExist::withId($id);
-        }
-        return $role;
-    }
-
-    /**
-     * Find or create role by its name
-     *
-     * @param string $name
-     *
-     * @return \Spatie\Permission\Contracts\Role
-     */
-    public static function findOrCreate(string $name): RoleContract {
-        $role = static::where('name', $name)->first();
-        if (! $role) {
-            return static::query()->create('name' => $name);
-        }
-        return $role;
-    }
-
-    /**
-     * Determine if the user may perform the given permission.
-     *
-     * @param string|Permission $permission
-     *
-     * @return bool
-     *
-     * @throws \Spatie\Permission\Exceptions\GuardDoesNotMatch
-     */
-    public function hasPermissionTo($permission): bool {
-        if (is_string($permission)) {
-            $permission = Permission::findByName($permission);
-        }
-
-        if (is_int($permission)) {
-            $permission = Permission::findById($permission);
-        }
-
-        return $this->permissions->contains('id', $permission->id);
     }
 
     /**
@@ -104,6 +26,7 @@ class Role extends Model implements RoleContract {
      */
     public function index() {
         $roles = Role::all();//Get all roles
+
         return view('roles.index')->with('roles', $roles);
     }
 
@@ -114,6 +37,7 @@ class Role extends Model implements RoleContract {
      */
     public function create() {
         $permissions = Permission::all();//Get all permissions
+
         return view('roles.create', ['permissions'=>$permissions]);
     }
 
@@ -130,10 +54,13 @@ class Role extends Model implements RoleContract {
             'permissions' =>'required',
             ]
         );
+
         $name = $request['name'];
         $role = new Role();
         $role->name = $name;
+
         $permissions = $request['permissions'];
+
         $role->save();
     //Looping thru selected permissions
         foreach ($permissions as $permission) {
@@ -142,6 +69,7 @@ class Role extends Model implements RoleContract {
             $role = Role::where('name', '=', $name)->first(); 
             $role->givePermissionTo($p);
         }
+
         return redirect()->route('roles.index')
             ->with('flash_message',
              'Role'. $role->name.' added!'); 
@@ -166,6 +94,7 @@ class Role extends Model implements RoleContract {
     public function edit($id) {
         $role = Role::findOrFail($id);
         $permissions = Permission::all();
+
         return view('roles.edit', compact('role', 'permissions'));
     }
 
@@ -177,23 +106,29 @@ class Role extends Model implements RoleContract {
      * @return \Illuminate\Http\Response
      */
     public function update(Request $request, $id) {
+
         $role = Role::findOrFail($id);//Get role with the given id
     //Validate name and permission fields
         $this->validate($request, [
             'name'=>'required|max:10|unique:roles,name,'.$id,
             'permissions' =>'required',
         ]);
+
         $input = $request->except(['permissions']);
         $permissions = $request['permissions'];
         $role->fill($input)->save();
+
         $p_all = Permission::all();//Get all permissions
+
         foreach ($p_all as $p) {
             $role->revokePermissionTo($p); //Remove all permissions associated with role
         }
+
         foreach ($permissions as $permission) {
             $p = Permission::where('id', '=', $permission)->firstOrFail(); //Get corresponding form //permission in db
             $role->givePermissionTo($p);  //Assign permission to role
         }
+
         return redirect()->route('roles.index')
             ->with('flash_message',
              'Role'. $role->name.' updated!');
@@ -209,8 +144,10 @@ class Role extends Model implements RoleContract {
     {
         $role = Role::findOrFail($id);
         $role->delete();
+
         return redirect()->route('roles.index')
             ->with('flash_message',
              'Role deleted!');
+
     }
 }
