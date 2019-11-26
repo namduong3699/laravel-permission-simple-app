@@ -40,7 +40,6 @@ interface Permission {
      * Find or Create a permission by its name and guard name.
      *
      * @param string $name
-     * @param string|null $guardName
      *
      * @return Permission
      */

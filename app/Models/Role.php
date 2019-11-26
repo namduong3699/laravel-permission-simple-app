@@ -11,12 +11,7 @@ use App\Contracts\Role as RoleContract;
 use App\Models\Permission; 
 
 class Role extends Model implements RoleContract {
-	use HasPermission;
-
-    public function __construct() {
-        $this->middleware(['auth', 'isAdmin']);//isAdmin middleware lets only users with a //specific permission permission to access these resources
-        $this->setTable('roles');
-    }
+	use HasPermissions;
 
     /**
      * A role may be given various permissions.
@@ -71,7 +66,7 @@ class Role extends Model implements RoleContract {
     public static function findOrCreate(string $name): RoleContract {
         $role = static::where('name', $name)->first();
         if (! $role) {
-            return static::query()->create('name' => $name);
+            return static::query()->create(['name' => $name]);
         }
         return $role;
     }
@@ -176,28 +171,55 @@ class Role extends Model implements RoleContract {
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request, $id) {
-        $role = Role::findOrFail($id);//Get role with the given id
-    //Validate name and permission fields
-        $this->validate($request, [
-            'name'=>'required|max:10|unique:roles,name,'.$id,
-            'permissions' =>'required',
-        ]);
-        $input = $request->except(['permissions']);
-        $permissions = $request['permissions'];
-        $role->fill($input)->save();
-        $p_all = Permission::all();//Get all permissions
-        foreach ($p_all as $p) {
-            $role->revokePermissionTo($p); //Remove all permissions associated with role
-        }
-        foreach ($permissions as $permission) {
-            $p = Permission::where('id', '=', $permission)->firstOrFail(); //Get corresponding form //permission in db
-            $role->givePermissionTo($p);  //Assign permission to role
-        }
-        return redirect()->route('roles.index')
-            ->with('flash_message',
-             'Role'. $role->name.' updated!');
-    }
+    // public function update(Request $request, $id) {
+    //     $role = Role::findOrFail($id);//Get role with the given id
+    //     $this->validate($request, [
+    //         'name'=>'required|max:10|unique:roles,name,'.$id,
+    //         'permissions' =>'required',
+    //     ]);
+    //     $input = $request->except(['permissions']);
+    //     $permissions = $request['permissions'];
+    //     $role->fill($input)->save();
+    //     $p_all = Permission::all();//Get all permissions
+    //     foreach ($p_all as $p) {
+    //         $role->revokePermissionTo($p); //Remove all permissions associated with role
+    //     }
+    //     foreach ($permissions as $permission) {
+    //         $p = Permission::where('id', '=', $permission)->firstOrFail(); //Get corresponding form //permission in db
+    //         $role->givePermissionTo($p);  //Assign permission to role
+    //     }
+    //     return redirect()->route('roles.index')
+    //         ->with('flash_message',
+    //          'Role'. $role->name.' updated!');
+    // }
+
+    // public function update(Request $request, $id) {
+
+    //     $role = Role::findOrFail($id);//Get role with the given id
+    //     $this->validate($request, [
+    //         'name'=>'required|max:10|unique:roles,name,'.$id,
+    //         'permissions' =>'required',
+    //     ]);
+
+    //     $input = $request->except(['permissions']);
+    //     $permissions = $request['permissions'];
+    //     $role->fill($input)->save();
+
+    //     $p_all = Permission::all();//Get all permissions
+
+    //     foreach ($p_all as $p) {
+    //         $role->revokePermissionTo($p); //Remove all permissions associated with role
+    //     }
+
+    //     foreach ($permissions as $permission) {
+    //         $p = Permission::where('id', '=', $permission)->firstOrFail(); //Get corresponding form //permission in db
+    //         $role->givePermissionTo($p);  //Assign permission to role
+    //     }
+
+    //     return redirect()->route('roles.index')
+    //         ->with('flash_message',
+    //          'Role'. $role->name.' updated!');
+    // }
 
     /**
      * Remove the specified resource from storage.
@@ -205,7 +227,7 @@ class Role extends Model implements RoleContract {
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function destroy($id)
+    public function __destroy($id)
     {
         $role = Role::findOrFail($id);
         $role->delete();

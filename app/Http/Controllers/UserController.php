@@ -9,16 +9,15 @@ use Auth;
 
 //Import Spatie Laravel Premission models
 use App\Models\Role;
-use App\Premission;
+use App\Models\Premission;
 
 //Use session to display flash message
 use Session;
 
-class UserController extends Controller
-{
+class UserController extends Controller {
     public function __construct() {
         //Only Admin has special permission to access these action
-        $this->middware(['auth', 'isAdmin']);
+        $this->middleware(['auth', 'isAdmin']);
     }
 
     /**
@@ -93,7 +92,7 @@ class UserController extends Controller
      */
     public function edit($id)
     {
-        $user = User::firstOrFail($id);
+        $user = User::findOrFail($id);
         $roles = Role::all();
 
         return view('users.edit', compact('user', 'roles'));
@@ -145,6 +144,5 @@ class UserController extends Controller
         return redirect()->route('users.index')
             ->with('flash_message',
              'User successfully deleted.');
-    }
     }
 }

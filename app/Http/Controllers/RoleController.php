@@ -8,7 +8,7 @@ use Auth;
 
 //Import Spatie Laravel Permission Model
 use App\Models\Role;
-use App\Permission;
+use App\Models\Permission;
 
 //Import Session to show flash message
 use Session;
